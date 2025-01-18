@@ -240,9 +240,13 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 		}
 		// Force update.
 		tweakedNode := *newNode
-		tweakedNode.FirstChild = oldNode.FirstChild
-		oldNode.LastChild.NextSibling = newNode.FirstChild
-		newNode.FirstChild.PrevSibling = oldNode.LastChild
+		if oldNode.LastChild != nil {
+			tweakedNode.FirstChild = oldNode.FirstChild
+			oldNode.LastChild.NextSibling = newNode.FirstChild
+			if newNode.FirstChild != nil {
+				newNode.FirstChild.PrevSibling = oldNode.LastChild
+			}
+		}
 		d.liveUpdateCheck(&tweakedNode)
 		newPatch = d.generatePatch(&tweakedNode, parentAnchor, Replace)
 		newPatch.Action = Replace
