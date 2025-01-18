@@ -233,17 +233,14 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 	// If nodes at this position are not equal patch a replacement.
 	if !nodeEqual(oldNode, newNode) {
 		newPatch := d.generatePatch(newNode, parentAnchor, Replace)
-		if newPatch.Action == Replace {
+		oldLiveUpdate := getLiveUpdate(oldNode)
+		newLiveUpdate := getLiveUpdate(newNode)
+		if newLiveUpdate == "replace" || oldLiveUpdate == newLiveUpdate {
 			return append(patches, newPatch)
 		}
-		// If the patch is not a replacement, we need to split the root and the child patches.
-		tweakedNode := newNode
-		tweakedNode.FirstChild = nil
-		tweakedNode.LastChild = nil
-		d.liveUpdateCheck(tweakedNode)
-		newPatch = d.generatePatch(tweakedNode, parentAnchor, Replace)
+		// If the patch is not a replacement, we need to force update.
 		newPatch.Action = Replace
-		patches = append(patches, newPatch)
+		return append(patches, newPatch)
 	}
 
 	newChildren := generateNodeList(newNode.FirstChild)
