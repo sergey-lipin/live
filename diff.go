@@ -235,10 +235,16 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 		newPatch := d.generatePatch(newNode, parentAnchor, Replace)
 		oldLiveUpdate := getLiveUpdate(oldNode)
 		newLiveUpdate := getLiveUpdate(newNode)
-		if newLiveUpdate == "replace" || oldLiveUpdate == newLiveUpdate {
+		if newLiveUpdate != "append" || oldLiveUpdate == newLiveUpdate {
 			return append(patches, newPatch)
 		}
-		// If the patch is not a replacement, we need to force update.
+		// Force update.
+		tweakedNode := *newNode
+		tweakedNode.FirstChild = oldNode.FirstChild
+		oldNode.LastChild.NextSibling = newNode.FirstChild
+		newNode.FirstChild.PrevSibling = oldNode.LastChild
+		d.liveUpdateCheck(&tweakedNode)
+		newPatch = d.generatePatch(&tweakedNode, parentAnchor, Replace)
 		newPatch.Action = Replace
 		return append(patches, newPatch)
 	}
