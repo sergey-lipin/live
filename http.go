@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -332,8 +333,20 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 	// Event errors.
 	eventErrors := make(chan ErrorEvent)
 
+	var mu sync.Mutex
+	isLocked := true
+	mu.Lock()
+	defer func() {
+		if isLocked {
+			mu.Unlock()
+			isLocked = false
+		}
+	}()
+
 	// Handle events coming from the websocket connection.
 	go func() {
+		mu.Lock()
+		defer mu.Unlock()
 		for {
 			t, d, err := c.Read(ctx)
 			if err != nil {
@@ -409,6 +422,9 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 		return fmt.Errorf("socket render error: %w", err)
 	}
 	sock.UpdateRender(render)
+
+	mu.Unlock()
+	isLocked = false
 
 	// Send events to the websocket connection.
 	for {
