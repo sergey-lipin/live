@@ -232,7 +232,13 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 
 	// If nodes at this position are not equal patch a replacement.
 	if !nodeEqual(oldNode, newNode) {
-		return append(patches, d.generatePatch(newNode, parentAnchor, Replace))
+		newPatch := d.generatePatch(newNode, parentAnchor, Replace)
+		if newPatch.Action == Replace {
+			return append(patches, newPatch)
+		}
+		// If the patch is not a replacement, we need to append the child nodes.
+		// TODO: This is a bit of a hack, we should be able to do this in a more
+		// elegant way.
 	}
 
 	newChildren := generateNodeList(newNode.FirstChild)
