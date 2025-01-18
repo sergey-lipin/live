@@ -206,11 +206,15 @@ func (e *BaseEngine) CallEvent(ctx context.Context, t string, sock Socket, msg E
 		return fmt.Errorf("received message and could not extract params: %w", err)
 	}
 
+	sock.BeginTransaction()
 	data, err := handler(ctx, sock, params)
+	if err == nil {
+		sock.Assign(data)
+	}
+	sock.EndTransaction()
 	if err != nil {
 		return err
 	}
-	sock.Assign(data)
 
 	return nil
 }
@@ -225,11 +229,15 @@ func (e *BaseEngine) handleSelf(ctx context.Context, t string, sock Socket, msg 
 		return fmt.Errorf("no self event handler for %s: %w", t, ErrNoEventHandler)
 	}
 
+	sock.BeginTransaction()
 	data, err := handler(ctx, sock, msg.SelfData)
+	if err == nil {
+		sock.Assign(data)
+	}
+	sock.EndTransaction()
 	if err != nil {
 		return fmt.Errorf("handler self event handler error [%s]: %w", t, err)
 	}
-	sock.Assign(data)
 
 	return nil
 }
@@ -242,11 +250,15 @@ func (e *BaseEngine) CallParams(ctx context.Context, sock Socket, msg Event) err
 	}
 
 	for _, ph := range e.handler.getParams() {
+		sock.BeginTransaction()
 		data, err := ph(ctx, sock, params)
+		if err == nil {
+			sock.Assign(data)
+		}
+		sock.EndTransaction()
 		if err != nil {
 			return fmt.Errorf("handler params handler error: %w", err)
 		}
-		sock.Assign(data)
 	}
 
 	return nil

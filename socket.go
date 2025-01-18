@@ -65,6 +65,10 @@ type Socket interface {
 	Session() Session
 	// Messages returns the channel of events on this socket.
 	Messages() chan Event
+	// BeginTransaction starts a transaction on this socket.
+	BeginTransaction()
+	// EndTransaction ends a transaction on this socket.
+	EndTransaction()
 }
 
 // BaseSocket describes a socket from the outside.
@@ -81,9 +85,10 @@ type BaseSocket struct {
 	uploadConfigs []*UploadConfig
 	uploads       UploadContext
 
-	data   interface{}
-	dataMu sync.Mutex
-	selfMu sync.Mutex
+	data       interface{}
+	dataMu     sync.Mutex
+	selfMu     sync.Mutex
+	transactMu sync.Mutex
 }
 
 // NewBaseSocket creates a new default socket.
@@ -244,4 +249,14 @@ func (s *BaseSocket) Session() Session {
 // Messages returns a channel of event messages sent and received by this socket.
 func (s *BaseSocket) Messages() chan Event {
 	return s.msgs
+}
+
+// BeginTransaction starts a transaction on this socket.
+func (s *BaseSocket) BeginTransaction() {
+	s.transactMu.Lock()
+}
+
+// EndTransaction ends a transaction on this socket.
+func (s *BaseSocket) EndTransaction() {
+	s.transactMu.Unlock()
 }

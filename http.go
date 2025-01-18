@@ -240,21 +240,30 @@ func (h *HttpEngine) get(ctx context.Context, w http.ResponseWriter, r *http.Req
 	sock := NewHttpSocket(session, h, false)
 
 	// Run mount, this generates the state for the page we are on.
+	sock.BeginTransaction()
 	data, err := h.Mount()(ctx, sock)
+	if err == nil {
+		sock.Assign(data)
+	}
+	sock.EndTransaction()
 	if err != nil {
 		h.Error()(ctx, err)
 		return
 	}
-	sock.Assign(data)
 
 	// Handle any query parameters that are on the page.
 	for _, ph := range h.Params() {
-		data, err := ph(ctx, sock, NewParamsFromRequest(r))
+		reqParams := NewParamsFromRequest(r)
+		sock.BeginTransaction()
+		data, err := ph(ctx, sock, reqParams)
+		if err == nil {
+			sock.Assign(data)
+		}
+		sock.EndTransaction()
 		if err != nil {
 			h.Error()(ctx, err)
 			return
 		}
-		sock.Assign(data)
 	}
 
 	// Render the HTML to display the page.
@@ -399,19 +408,28 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 
 	// Run mount again now that eh socket is connected, passing true indicating
 	// a connection has been made.
+	sock.BeginTransaction()
 	data, err := h.Mount()(ctx, sock)
+	if err == nil {
+		sock.Assign(data)
+	}
+	sock.EndTransaction()
 	if err != nil {
 		return fmt.Errorf("socket mount error: %w", err)
 	}
-	sock.Assign(data)
 
 	// Run params again now that the socket is connected.
 	for _, ph := range h.Params() {
-		data, err := ph(ctx, sock, NewParamsFromRequest(r))
+		reqParams := NewParamsFromRequest(r)
+		sock.BeginTransaction()
+		data, err := ph(ctx, sock, reqParams)
+		if err == nil {
+			sock.Assign(data)
+		}
+		sock.EndTransaction()
 		if err != nil {
 			return fmt.Errorf("socket params error: %w", err)
 		}
-		sock.Assign(data)
 	}
 
 	// Run render now that we are connected for the first time and we have just
