@@ -236,9 +236,15 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 		if newPatch.Action == Replace {
 			return append(patches, newPatch)
 		}
-		// If the patch is not a replacement, we need to append the child nodes.
-		// TODO: This is a bit of a hack, we should be able to do this in a more
-		// elegant way.
+		// If the patch is not a replacement, we need to split the root and the child patches.
+		tweakedNode := newNode
+		tweakedNode.Parent = oldNode.Parent
+		tweakedNode.FirstChild = oldNode.FirstChild
+		tweakedNode.LastChild = oldNode.LastChild
+		tweakedNode.PrevSibling = oldNode.PrevSibling
+		tweakedNode.NextSibling = oldNode.NextSibling
+		d.liveUpdateCheck(tweakedNode)
+		patches = append(patches, d.generatePatch(tweakedNode, parentAnchor, Replace))
 	}
 
 	newChildren := generateNodeList(newNode.FirstChild)
