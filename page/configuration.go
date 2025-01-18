@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/jfyne/live"
+	"github.com/sergey-lipin/live"
 )
 
 // ComponentConfig configures a component.

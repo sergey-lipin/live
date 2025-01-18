@@ -1,4 +1,4 @@
-module github.com/jfyne/live
+module github.com/sergey-lipin/live
 
 go 1.17
 

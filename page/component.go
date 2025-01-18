@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/jfyne/live"
+	"github.com/sergey-lipin/live"
 )
 
 // RegisterHandler the first part of the component lifecycle, this is called during component creation
