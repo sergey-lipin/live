@@ -238,13 +238,12 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 		}
 		// If the patch is not a replacement, we need to split the root and the child patches.
 		tweakedNode := newNode
-		tweakedNode.Parent = oldNode.Parent
-		tweakedNode.FirstChild = oldNode.FirstChild
-		tweakedNode.LastChild = oldNode.LastChild
-		tweakedNode.PrevSibling = oldNode.PrevSibling
-		tweakedNode.NextSibling = oldNode.NextSibling
+		tweakedNode.FirstChild = nil
+		tweakedNode.LastChild = nil
 		d.liveUpdateCheck(tweakedNode)
-		patches = append(patches, d.generatePatch(tweakedNode, parentAnchor, Replace))
+		newPatch = d.generatePatch(tweakedNode, parentAnchor, Replace)
+		newPatch.Action = Replace
+		patches = append(patches, newPatch)
 	}
 
 	newChildren := generateNodeList(newNode.FirstChild)
@@ -303,25 +302,33 @@ func findAnchor(node *html.Node) string {
 	return ""
 }
 
+func getLiveUpdate(node *html.Node) string {
+	for _, a := range node.Attr {
+		if a.Key == "live-update" {
+			return a.Val
+		}
+	}
+	return ""
+}
+
 // liveUpdateCheck check for an update modifier for this node.
 func (d *differ) liveUpdateCheck(node *html.Node) {
-	for _, attr := range node.Attr {
-		if attr.Key != "live-update" {
-			continue
-		}
-		d.updateNode = node
+	liveUpdate := getLiveUpdate(node)
+	if liveUpdate == "" {
+		return
+	}
 
-		switch attr.Val {
-		case "replace":
-			d.updateModifier = Replace
-		case "ignore":
-			d.updateModifier = Noop
-		case "append":
-			d.updateModifier = Append
-		case "prepend":
-			d.updateModifier = Prepend
-		}
-		break
+	d.updateNode = node
+
+	switch liveUpdate {
+	case "replace":
+		d.updateModifier = Replace
+	case "ignore":
+		d.updateModifier = Noop
+	case "append":
+		d.updateModifier = Append
+	case "prepend":
+		d.updateModifier = Prepend
 	}
 }
 
