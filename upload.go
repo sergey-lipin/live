@@ -92,12 +92,15 @@ func (u *UploadProgress) Write(p []byte) (n int, err error) {
 	n, err = len(p), nil
 	u.Upload.bytesRead += int64(n)
 	u.Upload.Progress = float32(u.Upload.bytesRead) / float32(u.Upload.Size)
+	u.Socket.BeginTransaction()
 	render, err := RenderSocket(context.Background(), u.Engine, u.Socket)
+	if err == nil {
+		u.Socket.UpdateRender(render)
+	}
+	u.Socket.EndTransaction()
 	if err != nil {
 		log.Println("error in upload progress:", err)
-		return
 	}
-	u.Socket.UpdateRender(render)
 	return
 }
 

@@ -137,12 +137,16 @@ func (h *HttpEngine) post(ctx context.Context, w http.ResponseWriter, r *http.Re
 			sock.AssignUpload(config.Name, u)
 			handleFileUpload(h, sock, config, u, uploadDir, fileHeader)
 
+			sock.BeginTransaction()
 			render, err := RenderSocket(ctx, h, sock)
+			if err == nil {
+				sock.UpdateRender(render)
+			}
+			sock.EndTransaction()
 			if err != nil {
 				h.Error()(ctx, err)
 				return
 			}
-			sock.UpdateRender(render)
 		}
 	}
 }
@@ -267,12 +271,16 @@ func (h *HttpEngine) get(ctx context.Context, w http.ResponseWriter, r *http.Req
 	}
 
 	// Render the HTML to display the page.
+	sock.BeginTransaction()
 	render, err := RenderSocket(ctx, h, sock)
+	if err == nil {
+		sock.UpdateRender(render)
+	}
+	sock.EndTransaction()
 	if err != nil {
 		h.Error()(ctx, err)
 		return
 	}
-	sock.UpdateRender(render)
 
 	var rendered bytes.Buffer
 	html.Render(&rendered, render)
@@ -389,11 +397,14 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 						}
 					}
 				}
+				sock.BeginTransaction()
 				render, err := RenderSocket(ctx, h, sock)
+				if err == nil {
+					sock.UpdateRender(render)
+				}
+				sock.EndTransaction()
 				if err != nil {
 					internalErrors <- fmt.Errorf("socket handle error: %w", err)
-				} else {
-					sock.UpdateRender(render)
 				}
 				if err := sock.Send(EventAck, nil, WithID(m.ID)); err != nil {
 					internalErrors <- fmt.Errorf("socket send error: %w", err)
@@ -435,11 +446,15 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 	// Run render now that we are connected for the first time and we have just
 	// mounted again. This will generate and send any patches if there have
 	// been changes.
+	sock.BeginTransaction()
 	render, err := RenderSocket(ctx, h, sock)
+	if err == nil {
+		sock.UpdateRender(render)
+	}
+	sock.EndTransaction()
 	if err != nil {
 		return fmt.Errorf("socket render error: %w", err)
 	}
-	sock.UpdateRender(render)
 
 	mu.Unlock()
 	isLocked = false

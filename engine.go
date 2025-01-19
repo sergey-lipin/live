@@ -157,11 +157,15 @@ func (e *BaseEngine) handleEmittedEvent(ctx context.Context, s Socket, msg Event
 	if err := e.handleSelf(ctx, msg.T, s, msg); err != nil {
 		log.Println("server event error", err)
 	}
+	s.BeginTransaction()
 	render, err := RenderSocket(ctx, e, s)
+	if err == nil {
+		s.UpdateRender(render)
+	}
+	s.EndTransaction()
 	if err != nil {
 		log.Println("socket handleView error", err)
 	}
-	s.UpdateRender(render)
 }
 
 // AddSocket add a socket to the engine.
