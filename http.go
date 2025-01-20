@@ -474,9 +474,9 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 			if err := writeTimeout(ctx, time.Second*5, c, Event{T: EventError, Data: d}); err != nil {
 				return fmt.Errorf("writing to socket error: %w", err)
 			}
-		case err := <-internalErrors:
-			if err != nil {
-				d, err := json.Marshal(err.Error())
+		case ie := <-internalErrors:
+			if ie != nil {
+				d, err := json.Marshal(ie)
 				if err != nil {
 					return fmt.Errorf("writing to socket error: %w", err)
 				}
@@ -484,7 +484,7 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 					return fmt.Errorf("writing to socket error: %w", err)
 				}
 				// Something catastrophic has happened.
-				return fmt.Errorf("internal error: %w", err)
+				return fmt.Errorf("internal error: %w", ie)
 			}
 		case <-ctx.Done():
 			return nil
