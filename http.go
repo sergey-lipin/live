@@ -25,6 +25,8 @@ var _ Engine = &HttpEngine{}
 var _ Socket = &HttpSocket{}
 var _ HttpSessionStore = &CookieStore{}
 
+const socketWriteTimeout = time.Second * 20
+
 // sessionCookie the name of the session cookie.
 const sessionCookie string = "_ls"
 
@@ -318,7 +320,7 @@ func (h *HttpEngine) serveWS(ctx context.Context, w http.ResponseWriter, r *http
 		return
 	}
 	defer c.Close(websocket.StatusInternalError, "")
-	writeTimeout(ctx, time.Second*5, c, Event{T: EventConnect})
+	writeTimeout(ctx, socketWriteTimeout, c, Event{T: EventConnect})
 	{
 		err := h._serveWS(ctx, r, session, c)
 		if errors.Is(err, context.Canceled) {
@@ -463,7 +465,7 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 	for {
 		select {
 		case msg := <-sock.msgs:
-			if err := writeTimeout(ctx, time.Second*5, c, msg); err != nil {
+			if err := writeTimeout(ctx, socketWriteTimeout, c, msg); err != nil {
 				return fmt.Errorf("writing to socket error: %w", err)
 			}
 		case ee := <-eventErrors:
@@ -471,7 +473,7 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 			if err != nil {
 				return fmt.Errorf("writing to socket error: %w", err)
 			}
-			if err := writeTimeout(ctx, time.Second*5, c, Event{T: EventError, Data: d}); err != nil {
+			if err := writeTimeout(ctx, socketWriteTimeout, c, Event{T: EventError, Data: d}); err != nil {
 				return fmt.Errorf("writing to socket error: %w", err)
 			}
 		case ie := <-internalErrors:
@@ -480,7 +482,7 @@ func (h *HttpEngine) _serveWS(ctx context.Context, r *http.Request, session Sess
 				if err != nil {
 					return fmt.Errorf("writing to socket error: %w", err)
 				}
-				if err := writeTimeout(ctx, time.Second*5, c, Event{T: EventError, Data: d}); err != nil {
+				if err := writeTimeout(ctx, socketWriteTimeout, c, Event{T: EventError, Data: d}); err != nil {
 					return fmt.Errorf("writing to socket error: %w", err)
 				}
 				// Something catastrophic has happened.
