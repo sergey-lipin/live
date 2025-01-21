@@ -232,11 +232,10 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 
 	// If nodes at this position are not equal patch a replacement.
 	if !nodeEqual(oldNode, newNode) {
-		newPatch := d.generatePatch(newNode, parentAnchor, Replace)
 		oldLiveUpdate := getLiveUpdate(oldNode)
 		newLiveUpdate := getLiveUpdate(newNode)
-		if newLiveUpdate != "append" || oldLiveUpdate == newLiveUpdate {
-			return append(patches, newPatch)
+		if !(newLiveUpdate == "append" && oldLiveUpdate == "replace") {
+			return append(patches, d.generatePatch(newNode, parentAnchor, Replace))
 		}
 		// Force update.
 		tweakedNode := *newNode
@@ -248,7 +247,7 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 			}
 		}
 		d.liveUpdateCheck(&tweakedNode)
-		newPatch = d.generatePatch(&tweakedNode, parentAnchor, Replace)
+		newPatch := d.generatePatch(&tweakedNode, parentAnchor, Replace)
 		newPatch.Action = Replace
 		return append(patches, newPatch)
 	}
@@ -270,11 +269,21 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 }
 
 func (d *differ) generatePatch(node *html.Node, target string, action PatchAction) patch {
+	finalAction := d.patchAction(action)
 	if node == nil {
-		return patch{
-			Anchor: d.patchAnchor(target),
-			Action: d.patchAction(action),
-			Node:   nil,
+		switch finalAction {
+		case Append, Prepend:
+			return patch{
+				Anchor: d.patchAnchor(target),
+				Action: finalAction,
+				Node:   nil,
+			}
+		default:
+			return patch{
+				Anchor: findAnchor(node),
+				Action: finalAction,
+				Node:   nil,
+			}
 		}
 	}
 	debugNodeLog("generatePatch", node)
@@ -282,19 +291,19 @@ func (d *differ) generatePatch(node *html.Node, target string, action PatchActio
 	case node.Type == html.TextNode:
 		return patch{
 			Anchor: d.patchAnchor(target),
-			Action: d.patchAction(action),
+			Action: finalAction,
 			Node:   node.Parent,
 		}
-	case action == Append:
+	case finalAction == Append, finalAction == Prepend:
 		return patch{
 			Anchor: d.patchAnchor(target),
-			Action: d.patchAction(action),
+			Action: finalAction,
 			Node:   node,
 		}
 	default:
 		return patch{
-			Anchor: d.patchAnchor(findAnchor(node)),
-			Action: d.patchAction(action),
+			Anchor: findAnchor(node),
+			Action: finalAction,
 			Node:   node,
 		}
 	}
