@@ -280,7 +280,7 @@ func (d *differ) generatePatch(node *html.Node, target string, action PatchActio
 			}
 		default:
 			return patch{
-				Anchor: findAnchor(node),
+				Anchor: target,
 				Action: finalAction,
 				Node:   nil,
 			}
