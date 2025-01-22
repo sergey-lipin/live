@@ -237,15 +237,42 @@ func (d *differ) compareNodes(oldNode, newNode *html.Node, parentAnchor string) 
 		if !(newLiveUpdate == "append" && oldLiveUpdate == "replace") {
 			return append(patches, d.generatePatch(newNode, parentAnchor, Replace))
 		}
+
 		// Force update.
 		tweakedNode := *newNode
-		if oldNode.LastChild != nil {
-			tweakedNode.FirstChild = oldNode.FirstChild
-			oldNode.LastChild.NextSibling = newNode.FirstChild
-			if newNode.FirstChild != nil {
-				newNode.FirstChild.PrevSibling = oldNode.LastChild
+		tweakedNode.FirstChild = nil
+		tweakedNode.LastChild = nil
+
+		child := oldNode.FirstChild
+		for {
+			if child == nil {
+				break
 			}
+
+			tweakedChild := *child
+			tweakedChild.Parent = nil
+			tweakedChild.PrevSibling = nil
+			tweakedChild.NextSibling = nil
+
+			tweakedNode.AppendChild(&tweakedChild)
+			child = child.NextSibling
 		}
+
+		child = newNode.FirstChild
+		for {
+			if child == nil {
+				break
+			}
+
+			tweakedChild := *child
+			tweakedChild.Parent = nil
+			tweakedChild.PrevSibling = nil
+			tweakedChild.NextSibling = nil
+
+			tweakedNode.AppendChild(&tweakedChild)
+			child = child.NextSibling
+		}
+
 		d.liveUpdateCheck(&tweakedNode)
 		newPatch := d.generatePatch(&tweakedNode, parentAnchor, Replace)
 		newPatch.Action = Replace
