@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"golang.org/x/net/html"
@@ -59,6 +61,8 @@ func RenderSocket(ctx context.Context, e Engine, s Socket) (*html.Node, error) {
 			}
 			_counters[s.ID()] = counter + 1
 			_countersMu.Unlock()
+
+			log.Println(string(debug.Stack()))
 
 			fc, err := os.OpenFile(fmt.Sprintf("%s-%d-current.html", s.ID(), counter), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err == nil {
